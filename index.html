@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>頻數分佈與累積頻數圖表工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+        }
+        .tab-active {
+            border-bottom: 4px solid #2563eb;
+            color: #2563eb;
+            font-weight: 700;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col text-lg">
+
+    <!-- Header Navigation & Horizontal Frequency Input Controls (Fixed/Sticky at top) -->
+    <div class="sticky top-0 z-50 shadow-md">
+        <!-- Main Blue Header -->
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="p-2.5 bg-white/10 rounded-2xl backdrop-blur-sm">
+                        <i class="fa-solid fa-chart-column text-3xl text-blue-200"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">統計學互動教學工具</h1>
+                        <p class="text-sm md:text-base text-blue-200">頻數組織圖、頻數多邊形與累積頻數多邊形</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="randomizeFrequencies()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-base font-bold rounded-xl shadow-sm transition flex items-center gap-2 border border-blue-400/30 active:scale-95">
+                        <i class="fa-solid fa-dice text-lg"></i> 隨機頻數
+                    </button>
+                    <button onclick="resetFrequencies()" class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-base font-bold rounded-xl transition flex items-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-rotate-left text-lg"></i> 重置數據
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Horizontal Frequency Input Panel (Fixed directly under blue header) -->
+        <section class="bg-slate-900/95 text-white backdrop-blur-md border-b border-slate-700/50 py-3 px-6 shadow-lg">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 font-bold text-slate-200 text-lg whitespace-nowrap">
+                    <i class="fa-solid fa-sliders text-blue-400"></i>
+                    <span>設定區間頻數：</span>
+                </div>
+
+                <!-- 4 Horizontal Interval Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto flex-grow max-w-4xl">
+                    <!-- Interval 1 -->
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                        <div class="leading-tight">
+                            <div class="font-extrabold text-blue-300 text-base md:text-lg">2 – 4</div>
+                            <div class="font-extrabold text-slate-300 text-base md:text-lg">組界 1.5–4.5</div>
+                        </div>
+                        <input type="number" id="freq-0" min="0" max="100" value="5" onchange="updateData()" 
+                               class="w-16 h-10 text-center text-xl font-black text-blue-900 bg-white border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none">
+                    </div>
+
+                    <!-- Interval 2 -->
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                        <div class="leading-tight">
+                            <div class="font-extrabold text-blue-300 text-base md:text-lg">5 – 7</div>
+                            <div class="font-extrabold text-slate-300 text-base md:text-lg">組界 4.5–7.5</div>
+                        </div>
+                        <input type="number" id="freq-1" min="0" max="100" value="12" onchange="updateData()" 
+                               class="w-16 h-10 text-center text-xl font-black text-blue-900 bg-white border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none">
+                    </div>
+
+                    <!-- Interval 3 -->
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                        <div class="leading-tight">
+                            <div class="font-extrabold text-blue-300 text-base md:text-lg">8 – 10</div>
+                            <div class="font-extrabold text-slate-300 text-base md:text-lg">組界 7.5–10.5</div>
+                        </div>
+                        <input type="number" id="freq-2" min="0" max="100" value="8" onchange="updateData()" 
+                               class="w-16 h-10 text-center text-xl font-black text-blue-900 bg-white border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none">
+                    </div>
+
+                    <!-- Interval 4 -->
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                        <div class="leading-tight">
+                            <div class="font-extrabold text-blue-300 text-base md:text-lg">11 – 13</div>
+                            <div class="font-extrabold text-slate-300 text-base md:text-lg">組界 10.5–13.5</div>
+                        </div>
+                        <input type="number" id="freq-3" min="0" max="100" value="3" onchange="updateData()" 
+                               class="w-16 h-10 text-center text-xl font-black text-blue-900 bg-white border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none">
+                    </div>
+                </div>
+
+                <!-- Total Count Display -->
+                <div class="bg-blue-600/30 border border-blue-400/40 rounded-xl px-4 py-1.5 text-center flex items-center md:flex-col justify-between w-full md:w-auto gap-2">
+                    <span class="text-xs font-semibold text-blue-200">總頻數</span>
+                    <span id="total-frequency" class="text-2xl font-black text-white">28</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Main Content Area (Full width single-column layout for optimized tablet chart viewing) -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-6 py-8 space-y-6">
+
+        <!-- Tab Buttons Header -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex flex-wrap gap-2">
+            <button onclick="switchTab('histogram')" id="tab-btn-histogram" 
+                    class="tab-btn flex-1 min-w-[140px] py-3.5 px-4 text-lg font-bold rounded-xl transition flex items-center justify-center gap-2 tab-active">
+                <i class="fa-solid fa-chart-bar text-xl"></i> 頻數組織圖
+            </button>
+            <button onclick="switchTab('polygon')" id="tab-btn-polygon" 
+                    class="tab-btn flex-1 min-w-[140px] py-3.5 px-4 text-lg font-bold rounded-xl text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-chart-line text-xl"></i> 頻數多邊形
+            </button>
+            <button onclick="switchTab('cumulative')" id="tab-btn-cumulative" 
+                    class="tab-btn flex-1 min-w-[160px] py-3.5 px-4 text-lg font-bold rounded-xl text-slate-600 hover:text-slate-900 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-chart-area text-xl"></i> 累積頻數多邊形
+            </button>
+        </div>
+
+        <!-- Tab 1: Frequency Histogram & Main Table -->
+        <div id="tab-histogram" class="tab-content space-y-6">
+            <!-- Main Frequency Table Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-blue-600"></i> 頻數分佈表
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-lg font-bold border-b border-slate-200">
+                                <th class="p-4 rounded-l-xl">組區間</th>
+                                <th class="p-4">組界</th>
+                                <th class="p-4">組中點</th>
+                                <th class="p-4">頻數</th>
+                                <th class="p-4 rounded-r-xl">累積頻數</th>
+                            </tr>
+                        </thead>
+                        <tbody id="main-stat-table-body" class="text-lg font-medium text-slate-700">
+                            <!-- Dynamically Generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Histogram Chart Display -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-simple text-blue-600"></i> 頻數組織圖
+                    </h3>
+                </div>
+                <div class="relative w-full h-[420px]">
+                    <canvas id="histogramChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Frequency Polygon -->
+        <div id="tab-polygon" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-blue-600"></i> 頻數多邊形
+                    </h3>
+                </div>
+                <div class="relative w-full h-[480px]">
+                    <canvas id="polygonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Cumulative Frequency Table & Ogive -->
+        <div id="tab-cumulative" class="tab-content hidden space-y-6">
+            <!-- Cumulative Table Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i> 累積頻數表
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-lg font-bold border-b border-slate-200">
+                                <th class="p-4 rounded-l-xl">數值區間範圍</th>
+                                <th class="p-4 rounded-r-xl">累積頻數</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cum-stat-table-body" class="text-lg font-medium text-slate-700">
+                            <!-- Dynamically Generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cumulative Polygon Chart -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-blue-600"></i> 累積頻數多邊形
+                    </h3>
+                </div>
+                <div class="relative w-full h-[480px]">
+                    <canvas id="ogiveChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 text-center text-sm font-medium text-slate-500">
+            統計學教學輔助工具 &copy; 互動圖表繪製系統
+        </div>
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Updated Dataset Structure with new intervals: 2-4, 5-7, 8-10, 11-13
+        const intervals = [
+            { label: '2 – 4', lowerBound: 1.5, upperBound: 4.5, midPoint: 3 },
+            { label: '5 – 7', lowerBound: 4.5, upperBound: 7.5, midPoint: 6 },
+            { label: '8 – 10', lowerBound: 7.5, upperBound: 10.5, midPoint: 9 },
+            { label: '11 – 13', lowerBound: 10.5, upperBound: 13.5, midPoint: 12 }
+        ];
+
+        // Chart Instances
+        let histogramChart = null;
+        let polygonChart = null;
+        let ogiveChart = null;
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateData();
+        });
+
+        // Get Current Frequencies from Inputs
+        function getFrequencies() {
+            return [
+                Math.max(0, parseInt(document.getElementById('freq-0').value) || 0),
+                Math.max(0, parseInt(document.getElementById('freq-1').value) || 0),
+                Math.max(0, parseInt(document.getElementById('freq-2').value) || 0),
+                Math.max(0, parseInt(document.getElementById('freq-3').value) || 0)
+            ];
+        }
+
+        // Randomize Frequencies
+        function randomizeFrequencies() {
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`freq-${i}`).value = Math.floor(Math.random() * 20) + 1;
+            }
+            updateData();
+        }
+
+        // Reset Frequencies
+        function resetFrequencies() {
+            const defaults = [5, 12, 8, 3];
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`freq-${i}`).value = defaults[i];
+            }
+            updateData();
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-slate-600');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-slate-600');
+        }
+
+        // Main Data Update Routine
+        function updateData() {
+            const frequencies = getFrequencies();
+            let cumSum = 0;
+            const cumulativeFrequencies = frequencies.map(f => cumSum += f);
+            const totalFreq = cumSum;
+
+            // Update Total Label
+            document.getElementById('total-frequency').innerText = totalFreq;
+
+            // Render Main Stats Table
+            const mainTableBody = document.getElementById('main-stat-table-body');
+            mainTableBody.innerHTML = intervals.map((item, idx) => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td class="p-3.5 font-bold text-slate-800">${item.label}</td>
+                    <td class="p-3.5 text-slate-600 font-semibold">${item.lowerBound} – ${item.upperBound}</td>
+                    <td class="p-3.5 text-slate-600 font-semibold">${item.midPoint}</td>
+                    <td class="p-3.5 font-bold text-blue-600 text-lg">${frequencies[idx]}</td>
+                    <td class="p-3.5 font-bold text-indigo-600 text-lg">${cumulativeFrequencies[idx]}</td>
+                </tr>
+            `).join('');
+
+            // Render Cumulative Table
+            const cumTableBody = document.getElementById('cum-stat-table-body');
+            let cumTableHTML = `
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td class="p-3.5 font-bold text-slate-800">少於 1.5</td>
+                    <td class="p-3.5 font-bold text-indigo-600 text-lg">0</td>
+                </tr>
+            `;
+            intervals.forEach((item, idx) => {
+                cumTableHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="p-3.5 font-bold text-slate-800">少於 ${item.upperBound}</td>
+                        <td class="p-3.5 font-bold text-indigo-600 text-lg">${cumulativeFrequencies[idx]}</td>
+                    </tr>
+                `;
+            });
+            cumTableBody.innerHTML = cumTableHTML;
+
+            // Update Charts
+            updateHistogram(frequencies);
+            updatePolygon(frequencies);
+            updateOgive(cumulativeFrequencies);
+        }
+
+        // Initialize Chart Instances with Larger Font Sizes for iPad
+        function initCharts() {
+            const chartOptionsBase = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { size: 16, weight: 'bold' },
+                        bodyFont: { size: 15 },
+                        padding: 12,
+                        cornerRadius: 10,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#e2e8f0' },
+                        ticks: { 
+                            font: { size: 15, weight: '600' },
+                            color: '#475569',
+                            stepSize: 1 
+                        }
+                    },
+                    x: {
+                        grid: { color: '#e2e8f0' },
+                        ticks: { 
+                            font: { size: 15, weight: '600' },
+                            color: '#475569' 
+                        }
+                    }
+                }
+            };
+
+            // 1. Frequency Organized Chart (Histogram)
+            const ctxHist = document.getElementById('histogramChart').getContext('2d');
+            histogramChart = new Chart(ctxHist, {
+                type: 'bar',
+                data: {
+                    labels: ['1.5 – 4.5', '4.5 – 7.5', '7.5 – 10.5', '10.5 – 13.5'],
+                    datasets: [{
+                        label: '頻數',
+                        data: [],
+                        backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 2,
+                        categoryPercentage: 1.0,
+                        barPercentage: 1.0
+                    }]
+                },
+                options: {
+                    ...chartOptionsBase,
+                    scales: {
+                        ...chartOptionsBase.scales,
+                        x: {
+                            ...chartOptionsBase.scales.x,
+                            title: { display: true, text: '時間（小時）', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        },
+                        y: {
+                            ...chartOptionsBase.scales.y,
+                            title: { display: true, text: '頻數', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Frequency Polygon
+            const ctxPoly = document.getElementById('polygonChart').getContext('2d');
+            polygonChart = new Chart(ctxPoly, {
+                type: 'line',
+                data: {
+                    labels: ['0', '3', '6', '9', '12', '15'],
+                    datasets: [{
+                        label: '頻數',
+                        data: [],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                        borderWidth: 3.5,
+                        pointBackgroundColor: '#1d4ed8',
+                        pointRadius: 7,
+                        pointHoverRadius: 9,
+                        fill: true,
+                        tension: 0
+                    }]
+                },
+                options: {
+                    ...chartOptionsBase,
+                    scales: {
+                        ...chartOptionsBase.scales,
+                        x: {
+                            ...chartOptionsBase.scales.x,
+                            title: { display: true, text: '時間（小時）', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        },
+                        y: {
+                            ...chartOptionsBase.scales.y,
+                            title: { display: true, text: '頻數', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+
+            // 3. Cumulative Frequency Polygon
+            const ctxOgive = document.getElementById('ogiveChart').getContext('2d');
+            ogiveChart = new Chart(ctxOgive, {
+                type: 'line',
+                data: {
+                    labels: ['1.5', '4.5', '7.5', '10.5', '13.5'],
+                    datasets: [{
+                        label: '累積頻數',
+                        data: [],
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.15)',
+                        borderWidth: 3.5,
+                        pointBackgroundColor: '#4338ca',
+                        pointRadius: 7,
+                        pointHoverRadius: 9,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    ...chartOptionsBase,
+                    scales: {
+                        ...chartOptionsBase.scales,
+                        x: {
+                            ...chartOptionsBase.scales.x,
+                            title: { display: true, text: '時間（小時）', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        },
+                        y: {
+                            ...chartOptionsBase.scales.y,
+                            title: { display: true, text: '累積頻數', color: '#1e293b', font: { size: 16, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Histogram
+        function updateHistogram(freqs) {
+            histogramChart.data.datasets[0].data = freqs;
+            histogramChart.update();
+        }
+
+        // Update Frequency Polygon
+        function updatePolygon(freqs) {
+            polygonChart.data.datasets[0].data = [0, ...freqs, 0];
+            polygonChart.update();
+        }
+
+        // Update Cumulative Polygon
+        function updateOgive(cumFreqs) {
+            ogiveChart.data.datasets[0].data = [0, ...cumFreqs];
+            ogiveChart.update();
+        }
+    </script>
+</body>
+</html>
